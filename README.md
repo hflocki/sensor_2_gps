@@ -53,3 +53,8 @@ The integration listens to state changes of the selected source sensors and dyna
 ## License
 
 This project is licensed under the MIT License.
+
+
+<a href="https://www.buymeacoffee.com/hflocki" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="60" width="217">
+</a>
