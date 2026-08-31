@@ -1,7 +1,7 @@
 # sensor_to_gps
 
 
-
+´´´´ýaml
 device_tracker:
   - platform: sensor_2_gps
     name: "Camper GPS"
@@ -9,3 +9,4 @@ device_tracker:
     longitude_sensor: sensor.rut505_longitude
     altitude_sensor: sensor.rut505_altitude   # Optional
     speed_sensor: sensor.rut505_speed         # Optional
+´´´´
