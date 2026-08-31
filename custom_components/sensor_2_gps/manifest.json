@@ -1,8 +1,8 @@
 {
   "domain": "sensor_2_gps",
-  "name": "Sensor to GPS Tracker",
+  "name": "Sensor 2 GPS Tracker",
   "codeowners": [],
-  "config_flow": false,
+  "config_flow": true,
   "documentation": "https://github.com",
   "iot_class": "local_push",
   "requirements": [],
