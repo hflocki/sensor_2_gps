@@ -1,5 +1,5 @@
 {
-  "domain": "sensor_to_gps",
+  "domain": "sensor_2_gps",
   "name": "Sensor to GPS Tracker",
   "codeowners": [],
   "config_flow": false,
