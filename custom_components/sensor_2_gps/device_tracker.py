@@ -1,45 +1,35 @@
-"""Generisches Device Tracker Platform aus bestehenden Sensor-Entitaeten."""
+"""Device tracker platform from sensors for Sensor 2 GPS Tracker."""
 import logging
-from homeassistant.components.device_tracker import PLATFORM_SCHEMA, SourceType
+from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
-from homeassistant.const import CONF_NAME, STATE_UNKNOWN, STATE_UNAVAILABLE
-import homeassistant.helpers.config_validation as cv
-import voluptuous as vol
+from homeassistant.const import STATE_UNKNOWN, STATE_UNAVAILABLE
+from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 
+CONF_NAME = "name"
 CONF_LATITUDE_SENSOR = "latitude_sensor"
 CONF_LONGITUDE_SENSOR = "longitude_sensor"
 CONF_ALTITUDE_SENSOR = "altitude_sensor"
 CONF_SPEED_SENSOR = "speed_sensor"
 
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
-    {
-        vol.Required(CONF_LATITUDE_SENSOR): cv.entity_id,
-        vol.Required(CONF_LONGITUDE_SENSOR): cv.entity_id,
-        vol.Optional(CONF_ALTITUDE_SENSOR): cv.entity_id,
-        vol.Optional(CONF_SPEED_SENSOR): cv.entity_id,
-        vol.Optional(CONF_NAME, default="Sensor 2 GPS Tracker"): cv.string,
-    }
-)
-
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Set up the platform from yaml config."""
-    async_add_entities([Sensor2GpsTracker(hass, config)], True)
+async def async_setup_entry(hass: HomeAssistant, entry, async_add_entities):
+    """Set up the device tracker entity from config entry."""
+    async_add_entities([Sensor2GpsTracker(hass, entry)], True)
 
 class Sensor2GpsTracker(TrackerEntity):
     """Representation of a GPS Tracker built from individual sensors."""
 
-    def __init__(self, hass, config):
+    def __init__(self, hass: HomeAssistant, entry):
         self.hass = hass
-        self._attr_name = config[CONF_NAME]
-        slug_name = config[CONF_NAME].lower().replace(" ", "_")
-        self._attr_unique_id = f"sensor_2_gps_{slug_name}"
-        
-        self._lat_sensor = config[CONF_LATITUDE_SENSOR]
-        self._lon_sensor = config[CONF_LONGITUDE_SENSOR]
-        self._alt_sensor = config.get(CONF_ALTITUDE_SENSOR)
-        self._speed_sensor = config.get(CONF_SPEED_SENSOR)
+        self._config = entry.data
+        self._attr_name = self._config[CONF_NAME]
+        self._attr_unique_id = f"sensor_2_gps_{entry.entry_id}"
+
+        self._lat_sensor = self._config[CONF_LATITUDE_SENSOR]
+        self._lon_sensor = self._config[CONF_LONGITUDE_SENSOR]
+        self._alt_sensor = self._config.get(CONF_ALTITUDE_SENSOR)
+        self._speed_sensor = self._config.get(CONF_SPEED_SENSOR)
 
         self._latitude = None
         self._longitude = None
@@ -72,7 +62,6 @@ class Sensor2GpsTracker(TrackerEntity):
 
     async def async_update(self):
         """Fetch latest states from the specified sensors."""
-        # Latitude & Longitude
         lat_state = self.hass.states.get(self._lat_sensor)
         lon_state = self.hass.states.get(self._lon_sensor)
 
@@ -83,7 +72,6 @@ class Sensor2GpsTracker(TrackerEntity):
             except ValueError:
                 _LOGGER.warning("Could not convert lat/lon to float: %s, %s", lat_state.state, lon_state.state)
 
-        # Altitude (optional)
         if self._alt_sensor:
             alt_state = self.hass.states.get(self._alt_sensor)
             if alt_state and alt_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
@@ -92,7 +80,6 @@ class Sensor2GpsTracker(TrackerEntity):
                 except ValueError:
                     pass
 
-        # Speed (optional)
         if self._speed_sensor:
             speed_state = self.hass.states.get(self._speed_sensor)
             if speed_state and speed_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
