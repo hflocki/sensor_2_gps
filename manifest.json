@@ -1,0 +1,10 @@
+{
+  "domain": "sensor_to_gps",
+  "name": "Sensor to GPS Tracker",
+  "codeowners": [],
+  "config_flow": false,
+  "documentation": "https://github.com",
+  "iot_class": "local_push",
+  "requirements": [],
+  "version": "1.0.0"
+}
