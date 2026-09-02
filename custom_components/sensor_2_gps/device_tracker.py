@@ -1,7 +1,6 @@
 """Device tracker platform from sensors for Sensor 2 GPS Tracker."""
 import logging
-from homeassistant.components.device_tracker import SourceType
-from homeassistant.components.device_tracker.config_entry import TrackerEntity
+from homeassistant.components.device_tracker import SourceType, TrackerEntity
 from homeassistant.const import STATE_UNKNOWN, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 
@@ -64,10 +63,15 @@ class Sensor2GpsTracker(TrackerEntity):
             attributes["speed"] = self._speed
         return attributes
 
-    def _parse_float(self, state_str: str) -> float | None:
-        """Helper to clean degree symbols, commas and parse float."""
-        if not state_str or state_str in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+    def _parse_float(self, state_val: str | None) -> float | None:
+        """Helper to clean degree symbols, commas and parse float safely."""
+        if state_val is None:
             return None
+        
+        state_str = str(state_val).strip()
+        if not state_str or state_str.lower() in (STATE_UNKNOWN, STATE_UNAVAILABLE, "none"):
+            return None
+            
         try:
             # Entfernt Grad-Symbole, Leerzeichen und ersetzt deutsche Kommas durch Punkte
             clean_str = state_str.replace("°", "").replace(",", ".").strip()
@@ -86,6 +90,7 @@ class Sensor2GpsTracker(TrackerEntity):
 
             if raw_lat is not None and raw_lon is not None and raw_lat != 0 and raw_lon != 0:
                 if self._is_raw:
+                    # Intelligente Skalierung: Nur teilen, wenn Wert > 180 (Modbus Integer)
                     self._latitude = raw_lat / 1000000.0 if abs(raw_lat) > 180 else raw_lat
                     self._longitude = raw_lon / 1000000.0 if abs(raw_lon) > 180 else raw_lon
                 else:
