@@ -2,7 +2,6 @@
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers import selector
-import homeassistant.helpers.config_validation as cv
 
 DOMAIN = "sensor_2_gps"
 
@@ -11,6 +10,8 @@ CONF_LATITUDE_SENSOR = "latitude_sensor"
 CONF_LONGITUDE_SENSOR = "longitude_sensor"
 CONF_ALTITUDE_SENSOR = "altitude_sensor"
 CONF_SPEED_SENSOR = "speed_sensor"
+CONF_RAW_MODBUS = "raw_modbus"
+
 
 class Sensor2GpsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Sensor 2 GPS Tracker."""
@@ -36,6 +37,7 @@ class Sensor2GpsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_LONGITUDE_SENSOR): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
+                vol.Optional(CONF_RAW_MODBUS, default=True): selector.BooleanSelector(),
                 vol.Optional(CONF_ALTITUDE_SENSOR): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
