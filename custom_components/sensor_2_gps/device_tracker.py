@@ -82,9 +82,9 @@ class Sensor2GpsTracker(TrackerEntity):
                 # Nur aktualisieren, wenn ein gültiger GPS Fix da ist (ungleich 0)
                 if raw_lat != 0 and raw_lon != 0:
                     if self._is_raw:
-                        # Teltonika Modbus Integer-Konvertierung (z. B. 51123456 -> 51.123456)
-                        self._latitude = raw_lat / 1000000.0
-                        self._longitude = raw_lon / 1000000.0
+                        # Automatische Erkennung: Nur teilen, wenn Wert außerhalb normaler GPS-Grenzen (> 180) liegt
+                        self._latitude = raw_lat / 1000000.0 if abs(raw_lat) > 180 else raw_lat
+                        self._longitude = raw_lon / 1000000.0 if abs(raw_lon) > 180 else raw_lon
                     else:
                         self._latitude = raw_lat
                         self._longitude = raw_lon
