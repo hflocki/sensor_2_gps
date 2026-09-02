@@ -12,10 +12,13 @@ CONF_LATITUDE_SENSOR = "latitude_sensor"
 CONF_LONGITUDE_SENSOR = "longitude_sensor"
 CONF_ALTITUDE_SENSOR = "altitude_sensor"
 CONF_SPEED_SENSOR = "speed_sensor"
+CONF_RAW_MODBUS = "raw_modbus"
+
 
 async def async_setup_entry(hass: HomeAssistant, entry, async_add_entities):
     """Set up the device tracker entity from config entry."""
     async_add_entities([Sensor2GpsTracker(hass, entry)], True)
+
 
 class Sensor2GpsTracker(TrackerEntity):
     """Representation of a GPS Tracker built from individual sensors."""
@@ -30,6 +33,7 @@ class Sensor2GpsTracker(TrackerEntity):
         self._lon_sensor = self._config[CONF_LONGITUDE_SENSOR]
         self._alt_sensor = self._config.get(CONF_ALTITUDE_SENSOR)
         self._speed_sensor = self._config.get(CONF_SPEED_SENSOR)
+        self._is_raw = self._config.get(CONF_RAW_MODBUS, False)
 
         self._latitude = None
         self._longitude = None
@@ -65,12 +69,31 @@ class Sensor2GpsTracker(TrackerEntity):
         lat_state = self.hass.states.get(self._lat_sensor)
         lon_state = self.hass.states.get(self._lon_sensor)
 
-        if lat_state and lon_state and lat_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+        if (
+            lat_state
+            and lon_state
+            and lat_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE)
+            and lon_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE)
+        ):
             try:
-                self._latitude = float(lat_state.state)
-                self._longitude = float(lon_state.state)
+                raw_lat = float(lat_state.state)
+                raw_lon = float(lon_state.state)
+
+                # Nur aktualisieren, wenn ein gültiger GPS Fix da ist (ungleich 0)
+                if raw_lat != 0 and raw_lon != 0:
+                    if self._is_raw:
+                        # Teltonika Modbus Integer-Konvertierung (z. B. 51123456 -> 51.123456)
+                        self._latitude = raw_lat / 1000000.0
+                        self._longitude = raw_lon / 1000000.0
+                    else:
+                        self._latitude = raw_lat
+                        self._longitude = raw_lon
             except ValueError:
-                _LOGGER.warning("Could not convert lat/lon to float: %s, %s", lat_state.state, lon_state.state)
+                _LOGGER.warning(
+                    "Could not convert lat/lon to float: %s, %s",
+                    lat_state.state,
+                    lon_state.state,
+                )
 
         if self._alt_sensor:
             alt_state = self.hass.states.get(self._alt_sensor)
