@@ -64,49 +64,44 @@ class Sensor2GpsTracker(TrackerEntity):
             attributes["speed"] = self._speed
         return attributes
 
+    def _parse_float(self, state_str: str) -> float | None:
+        """Helper to clean degree symbols, commas and parse float."""
+        if not state_str or state_str in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+            return None
+        try:
+            # Entfernt Grad-Symbole, Leerzeichen und ersetzt deutsche Kommas durch Punkte
+            clean_str = state_str.replace("°", "").replace(",", ".").strip()
+            return float(clean_str)
+        except ValueError:
+            return None
+
     async def async_update(self):
         """Fetch latest states from the specified sensors."""
         lat_state = self.hass.states.get(self._lat_sensor)
         lon_state = self.hass.states.get(self._lon_sensor)
 
-        if (
-            lat_state
-            and lon_state
-            and lat_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE)
-            and lon_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE)
-        ):
-            try:
-                raw_lat = float(lat_state.state)
-                raw_lon = float(lon_state.state)
+        if lat_state and lon_state:
+            raw_lat = self._parse_float(lat_state.state)
+            raw_lon = self._parse_float(lon_state.state)
 
-                # Nur aktualisieren, wenn ein gültiger GPS Fix da ist (ungleich 0)
-                if raw_lat != 0 and raw_lon != 0:
-                    if self._is_raw:
-                        # Automatische Erkennung: Nur teilen, wenn Wert außerhalb normaler GPS-Grenzen (> 180) liegt
-                        self._latitude = raw_lat / 1000000.0 if abs(raw_lat) > 180 else raw_lat
-                        self._longitude = raw_lon / 1000000.0 if abs(raw_lon) > 180 else raw_lon
-                    else:
-                        self._latitude = raw_lat
-                        self._longitude = raw_lon
-            except ValueError:
-                _LOGGER.warning(
-                    "Could not convert lat/lon to float: %s, %s",
-                    lat_state.state,
-                    lon_state.state,
-                )
+            if raw_lat is not None and raw_lon is not None and raw_lat != 0 and raw_lon != 0:
+                if self._is_raw:
+                    self._latitude = raw_lat / 1000000.0 if abs(raw_lat) > 180 else raw_lat
+                    self._longitude = raw_lon / 1000000.0 if abs(raw_lon) > 180 else raw_lon
+                else:
+                    self._latitude = raw_lat
+                    self._longitude = raw_lon
 
         if self._alt_sensor:
             alt_state = self.hass.states.get(self._alt_sensor)
-            if alt_state and alt_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
-                try:
-                    self._altitude = float(alt_state.state)
-                except ValueError:
-                    pass
+            if alt_state:
+                alt_val = self._parse_float(alt_state.state)
+                if alt_val is not None:
+                    self._altitude = alt_val
 
         if self._speed_sensor:
             speed_state = self.hass.states.get(self._speed_sensor)
-            if speed_state and speed_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
-                try:
-                    self._speed = float(speed_state.state)
-                except ValueError:
-                    pass
+            if speed_state:
+                speed_val = self._parse_float(speed_state.state)
+                if speed_val is not None:
+                    self._speed = speed_val
