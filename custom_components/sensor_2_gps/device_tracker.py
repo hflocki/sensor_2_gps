@@ -3,6 +3,7 @@ import logging
 from homeassistant.components.device_tracker import SourceType, TrackerEntity
 from homeassistant.const import STATE_UNKNOWN, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.event import async_track_state_change_event
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,6 +41,32 @@ class Sensor2GpsTracker(TrackerEntity):
         self._speed = None
 
     @property
+    def should_poll(self) -> bool:
+        """Tell Home Assistant to poll this entity periodically."""
+        return True
+
+    async def async_added_to_hass(self):
+        """Register callbacks when source sensors change state."""
+        await super().async_added_to_hass()
+
+        tracked_sensors = [self._lat_sensor, self._lon_sensor]
+        if self._alt_sensor:
+            tracked_sensors.append(self._alt_sensor)
+        if self._speed_sensor:
+            tracked_sensors.append(self._speed_sensor)
+
+        # Reagiert sofort, wenn einer der Quellsensoren aktualisiert wird!
+        self.async_on_remove(
+            async_track_state_change_event(
+                self.hass, tracked_sensors, self._async_sensor_changed
+            )
+        )
+
+    async def _async_sensor_changed(self, event):
+        """Handle source sensor state change."""
+        self.async_schedule_update_ha_state(True)
+
+    @property
     def source_type(self) -> SourceType:
         return SourceType.GPS
 
@@ -67,13 +94,13 @@ class Sensor2GpsTracker(TrackerEntity):
         """Helper to clean degree symbols, commas and parse float safely."""
         if state_val is None:
             return None
-        
+            
         state_str = str(state_val).strip()
         if not state_str or state_str.lower() in (STATE_UNKNOWN, STATE_UNAVAILABLE, "none"):
             return None
             
         try:
-            # Entfernt Grad-Symbole, Leerzeichen und ersetzt deutsche Kommas durch Punkte
+            # Removes degree symbols, spaces, and replaces German commas with dots
             clean_str = state_str.replace("°", "").replace(",", ".").strip()
             return float(clean_str)
         except ValueError:
@@ -90,7 +117,7 @@ class Sensor2GpsTracker(TrackerEntity):
 
             if raw_lat is not None and raw_lon is not None and raw_lat != 0 and raw_lon != 0:
                 if self._is_raw:
-                    # Intelligente Skalierung: Nur teilen, wenn Wert > 180 (Modbus Integer)
+                    # Intelligent scaling: divide only if value > 180 (Modbus Integer)
                     self._latitude = raw_lat / 1000000.0 if abs(raw_lat) > 180 else raw_lat
                     self._longitude = raw_lon / 1000000.0 if abs(raw_lon) > 180 else raw_lon
                 else:
